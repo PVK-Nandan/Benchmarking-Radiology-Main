@@ -1,0 +1,32 @@
+{
+  "name": "monarcs-radiology-report-comparison",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "zip": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Compress-Archive -Path app,lib,package.json,package-lock.json,next.config.mjs,tsconfig.json,README.md,.env.example,.gitignore -DestinationPath monarcs-radiology-report-comparison.zip -Force\""
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.105.1",
+    "dicom-parser": "^1.8.21",
+    "lucide-react": "^0.468.0",
+    "next": "^16.2.4",
+    "pdf-parse": "1.1.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "sharp": "^0.34.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.10",
+    "@types/pdf-parse": "^1.1.4",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.7.2"
+  },
+  "overrides": {
+    "postcss": "^8.5.10"
+  }
+}

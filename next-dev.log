@@ -1,0 +1,20 @@
+
+> monarcs-radiology-report-comparison@1.0.0 dev
+> next dev -p 3000
+
+▲ Next.js 16.2.4 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.29.94:3000
+✓ Ready in 476ms
+Creating turbopack project {
+  dir: 'D:\\Medoc Health\\Benchamrking-Radiology-main',
+  testMode: true
+}
+
+ GET / 200 in 1293ms (next.js: 1142ms, application-code: 151ms)
+ GET / 200 in 71ms (next.js: 13ms, application-code: 59ms)
+✓ Compiled in 112ms
+ GET / 200 in 160ms (next.js: 112ms, application-code: 48ms)
+ GET / 200 in 85ms (next.js: 3ms, application-code: 81ms)
+✓ Compiled in 30ms
+ GET / 200 in 128ms (next.js: 72ms, application-code: 57ms)

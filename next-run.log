@@ -1,0 +1,33 @@
+
+> monarcs-radiology-report-comparison@1.0.0 dev
+> next dev
+
+▲ Next.js 16.2.4 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.33:3000
+- Environments: .env.local
+✓ Ready in 899ms
+Creating turbopack project {
+  dir: 'D:\\Medoc Health\\Benchamrking-Radiology-main',
+  testMode: true
+}
+
+ GET / 200 in 519ms (next.js: 228ms, application-code: 292ms)
+ GET / 200 in 90ms (next.js: 5ms, application-code: 85ms)
+ GET /api/auth/session 200 in 146ms (next.js: 120ms, application-code: 26ms)
+ GET /api/auth/session 200 in 11ms (next.js: 4ms, application-code: 7ms)
+ GET /api/auth/session 200 in 65ms (next.js: 33ms, application-code: 32ms)
+ GET / 200 in 669ms (next.js: 191ms, application-code: 478ms)
+ GET / 200 in 88ms (next.js: 13ms, application-code: 75ms)
+ GET /api/auth/session 200 in 45ms (next.js: 13ms, application-code: 32ms)
+✓ Compiled in 618ms
+ GET / 200 in 447ms (next.js: 326ms, application-code: 121ms)
+ GET / 200 in 36ms (next.js: 5ms, application-code: 31ms)
+ GET / 200 in 671ms (next.js: 110ms, application-code: 561ms)
+ GET /api/auth/session 200 in 335ms (next.js: 283ms, application-code: 52ms)
+ GET / 200 in 323ms (next.js: 47ms, application-code: 276ms)
+ GET /api/auth/session 200 in 27ms (next.js: 5ms, application-code: 22ms)
+ POST /api/auth/google 200 in 5.1s (next.js: 3.7s, application-code: 1381ms)
+ POST /api/auth/logout 200 in 286ms (next.js: 270ms, application-code: 16ms)
+ POST /api/auth/local 200 in 116ms (next.js: 91ms, application-code: 25ms)
+ GET /api/audit?limit=100 200 in 95ms (next.js: 68ms, application-code: 27ms)

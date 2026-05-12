@@ -1,0 +1,276 @@
+⨯ ./app/page.tsx:403:10
+Unterminated regexp literal
+  [90m401 |[0m             </a>
+  [90m402 |[0m           </div>
+[31m[1m>[0m [90m403 |[0m         </div>
+  [90m    |[0m          [31m[1m^^^^^[0m
+  [90m404 |[0m         <div className=[32m"dicom-frame-shell"[0m>
+  [90m405 |[0m           <iframe
+  [90m406 |[0m             title=[32m"OHIF DICOM Viewer"[0m
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+
+[browser] ./app/page.tsx:403:10
+Unterminated regexp literal
+  401 |             </a>
+  402 |           </div>
+> 403 |         </div>
+      |          ^^^^^
+  404 |         <div className="dicom-frame-shell">
+  405 |           <iframe
+  406 |             title="OHIF DICOM Viewer"
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+    at handleErrors (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+[browser] ./app/page.tsx:403:10
+Unterminated regexp literal
+  401 |             </a>
+  402 |           </div>
+> 403 |         </div>
+      |          ^^^^^
+  404 |         <div className="dicom-frame-shell">
+  405 |           <iframe
+  406 |             title="OHIF DICOM Viewer"
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+    at handleErrors (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+    at processMessage (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13891:21)
+    at WebSocket.handleMessage (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13335:52) (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13828:21)
+⨯ ./app/page.tsx:403:10
+Unterminated regexp literal
+  [90m401 |[0m             </a>
+  [90m402 |[0m           </div>
+[31m[1m>[0m [90m403 |[0m         </div>
+  [90m    |[0m          [31m[1m^^^^^[0m
+  [90m404 |[0m         <div className=[32m"dicom-frame-shell"[0m>
+  [90m405 |[0m           <iframe
+  [90m406 |[0m             title=[32m"OHIF DICOM Viewer"[0m
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+
+⨯ ./app/page.tsx:403:10
+Unterminated regexp literal
+  [90m401 |[0m             </a>
+  [90m402 |[0m           </div>
+[31m[1m>[0m [90m403 |[0m         </div>
+  [90m    |[0m          [31m[1m^^^^^[0m
+  [90m404 |[0m         <div className=[32m"dicom-frame-shell"[0m>
+  [90m405 |[0m           <iframe
+  [90m406 |[0m             title=[32m"OHIF DICOM Viewer"[0m
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+
+⨯ ./app/page.tsx:403:10
+Unterminated regexp literal
+  [90m401 |[0m             </a>
+  [90m402 |[0m           </div>
+[31m[1m>[0m [90m403 |[0m         </div>
+  [90m    |[0m          [31m[1m^^^^^[0m
+  [90m404 |[0m         <div className=[32m"dicom-frame-shell"[0m>
+  [90m405 |[0m           <iframe
+  [90m406 |[0m             title=[32m"OHIF DICOM Viewer"[0m
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+
+⨯ ./app/page.tsx:403:10
+Unterminated regexp literal
+  [90m401 |[0m             </a>
+  [90m402 |[0m           </div>
+[31m[1m>[0m [90m403 |[0m         </div>
+  [90m    |[0m          [31m[1m^^^^^[0m
+  [90m404 |[0m         <div className=[32m"dicom-frame-shell"[0m>
+  [90m405 |[0m           <iframe
+  [90m406 |[0m             title=[32m"OHIF DICOM Viewer"[0m
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+
+[browser] Uncaught Error: ./app/page.tsx:403:10
+Unterminated regexp literal
+  401 |             </a>
+  402 |           </div>
+> 403 |         </div>
+      |          ^^^^^
+  404 |         <div className="dicom-frame-shell">
+  405 |           <iframe
+  406 |             title="OHIF DICOM Viewer"
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component]
+
+
+    at <unknown> (Error: ./app/page.tsx:403:10)
+    at <unknown> (Error: (./app/page.tsx:403:10)
+[browser] ./app/page.tsx:403:10
+Unterminated regexp literal
+  401 |             </a>
+  402 |           </div>
+> 403 |         </div>
+      |          ^^^^^
+  404 |         <div className="dicom-frame-shell">
+  405 |           <iframe
+  406 |             title="OHIF DICOM Viewer"
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+    at handleErrors (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./app/page.tsx:403:10
+Unterminated regexp literal
+  401 |             </a>
+  402 |           </div>
+> 403 |         </div>
+      |          ^^^^^
+  404 |         <div className="dicom-frame-shell">
+  405 |           <iframe
+  406 |             title="OHIF DICOM Viewer"
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+    at handleErrors (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./app/page.tsx:403:10
+Unterminated regexp literal
+  401 |             </a>
+  402 |           </div>
+> 403 |         </div>
+      |          ^^^^^
+  404 |         <div className="dicom-frame-shell">
+  405 |           <iframe
+  406 |             title="OHIF DICOM Viewer"
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+    at handleErrors (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+[browser] ./app/page.tsx:403:10
+Unterminated regexp literal
+  401 |             </a>
+  402 |           </div>
+> 403 |         </div>
+      |          ^^^^^
+  404 |         <div className="dicom-frame-shell">
+  405 |           <iframe
+  406 |             title="OHIF DICOM Viewer"
+
+Parsing ecmascript source code failed
+
+Import traces:
+  Client Component Browser:
+    ./app/page.tsx [Client Component Browser]
+    ./app/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/page.tsx [Client Component SSR]
+    ./app/page.tsx [Server Component] 
+    at handleErrors (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)
+    at processMessage (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2834:28)
+    at <unknown> (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2679:13)
+    at WebSocket.handleMessage (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2324:17) (file://D:/Medoc Health/Benchamrking-Radiology-main/.next/dev/static/chunks/node_modules_next_dist_client_0pe1dg-._.js:2773:21)

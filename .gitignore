@@ -1,0 +1,8 @@
+node_modules
+.next
+.env.local
+.env*.local
+data
+monarcs-radiology-benchmarking.zip
+monarcs-radiology-report-comparison.zip
+npm-debug.log*
