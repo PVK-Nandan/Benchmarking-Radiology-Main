@@ -47,7 +47,7 @@ export type AuditEvent = {
   details?: Record<string, unknown>;
 };
 
-const dataDir = path.join(process.cwd(), "data");
+const dataDir = process.env.VERCEL ? "/tmp/monarcs-data" : path.join(process.cwd(), "data");
 const uploadsDir = path.join(dataDir, "uploads");
 const localDbPath = path.join(dataDir, "report-tests.jsonl");
 const localAuditPath = path.join(dataDir, "audit-events.jsonl");
