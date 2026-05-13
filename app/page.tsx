@@ -87,6 +87,16 @@ type AuditEvent = {
   details?: Record<string, unknown>;
 };
 
+type FractureSampleCase = {
+  file_name: string;
+  image_url?: string;
+  mura_region: string;
+  fracture_type: string;
+  fracture_count: number;
+  boxes: Array<{ x: number; y: number; width: number; height: number }>;
+  source_image_id?: string;
+};
+
 function metricColor(score: number) {
   if (score >= 85) return "good";
   if (score >= 70) return "warn";
@@ -117,6 +127,42 @@ function sampleDicomFiles(files: File[], maxFiles: number) {
     sampled.push(sorted[Math.min(sorted.length - 1, Math.floor(index * step))]);
   }
   return sampled;
+}
+
+function buildFractureCaseTemplate(files: File[]) {
+  const fractureTypes = [
+    ["wrist", "distal radius fracture"],
+    ["wrist", "scaphoid fracture"],
+    ["hand", "metacarpal fracture"],
+    ["finger", "phalangeal fracture"],
+    ["forearm", "ulna shaft fracture"],
+    ["elbow", "radial head fracture"],
+    ["elbow", "olecranon fracture"],
+    ["humerus", "humeral shaft fracture"],
+    ["shoulder", "proximal humerus fracture"],
+    ["shoulder", "clavicle fracture"]
+  ];
+  const cases = Array.from({ length: 10 }, (_, index) => {
+    const file = files[index];
+    const [muraRegion, fractureType] = fractureTypes[index];
+    return {
+      file_name: file ? ((file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name) : `mura_fracture_${String(index + 1).padStart(2, "0")}.png`,
+      mura_region: muraRegion,
+      fracture: "fracture",
+      fracture_type: fractureType,
+      fracture_count: 1,
+      boxes: [
+        {
+          x: 40,
+          y: 40,
+          width: 18,
+          height: 18
+        }
+      ],
+      notes: "Edit the fracture type, count, and box coordinates before scoring."
+    };
+  });
+  return JSON.stringify({ cases }, null, 2);
 }
 
 function SectionTitle({ icon, title, caption }: { icon: React.ReactNode; title: string; caption: string }) {
@@ -155,8 +201,7 @@ export default function Home() {
   const [busy, setBusy] = useState("");
   const [logs, setLogs] = useState<string[]>(["System ready. Add your API key or configure environment variables on Vercel."]);
   const [fractureImages, setFractureImages] = useState<File[]>([]);
-  const [fractureLabelsCsv, setFractureLabelsCsv] = useState("");
-  const [fractureDatasetMode, setFractureDatasetMode] = useState("mixed FracAtlas + MURA");
+  const [fractureCaseJson, setFractureCaseJson] = useState("");
   const [fractureResult, setFractureResult] = useState<FractureBenchmarkResult | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [googleClientId, setGoogleClientId] = useState("");
@@ -298,18 +343,21 @@ export default function Home() {
   }
 
   async function runFractureBenchmark() {
-    if (!fractureImages.length) {
-      log("Upload a batch of X-ray images before running fracture benchmarking.");
+    if (fractureImages.length !== 10) {
+      log("Upload or load exactly 10 X-ray images before running fracture localization scoring.");
+      return;
+    }
+    if (!fractureCaseJson.trim()) {
+      log("Create or paste the 10-case fracture JSON before scoring.");
       return;
     }
     setBusy("fracture");
     setFractureResult(null);
-    log(`Running fracture benchmark on ${fractureImages.length} image(s).`);
+    log("Running 10-case fracture localization benchmark with bounding-box scoring.");
     const form = new FormData();
     form.append("provider", provider);
     form.append("model", reportModel);
-    form.append("datasetMode", fractureDatasetMode);
-    form.append("labelsCsv", fractureLabelsCsv);
+    form.append("caseJson", fractureCaseJson);
     if (apiKey.trim()) form.append("apiKey", apiKey.trim());
     fractureImages.forEach((file) => {
       const path = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
@@ -321,7 +369,7 @@ export default function Home() {
       const json = await response.json();
       if (!response.ok) throw new Error(json.error);
       setFractureResult(json);
-      log(`Fracture benchmark complete: ${json.metrics?.labeled || 0} labeled case(s), ${json.metrics?.unlabeled || 0} unlabeled.`);
+      log(`Fracture localization benchmark complete: overall ${json.metrics?.overall_score || 0}%, mIoU ${json.metrics?.localization_miou || 0}%.`);
     } catch (error: any) {
       log(`Fracture benchmark failed: ${error.message}`);
     } finally {
@@ -436,13 +484,14 @@ export default function Home() {
       {tab === "fracture" && (
         <FractureBenchmark
           files={fractureImages}
-          labelsCsv={fractureLabelsCsv}
-          datasetMode={fractureDatasetMode}
+          caseJson={fractureCaseJson}
           result={fractureResult}
           busy={busy === "fracture"}
-          onFiles={setFractureImages}
-          onLabelsCsv={setFractureLabelsCsv}
-          onDatasetMode={setFractureDatasetMode}
+          onFiles={(files) => {
+            setFractureImages(files);
+            setFractureCaseJson((current) => current.trim() ? current : buildFractureCaseTemplate(files));
+          }}
+          onCaseJson={setFractureCaseJson}
           onRun={runFractureBenchmark}
         />
       )}
@@ -652,65 +701,72 @@ function LoginGate({
 
 function FractureBenchmark({
   files,
-  labelsCsv,
-  datasetMode,
+  caseJson,
   result,
   busy,
   onFiles,
-  onLabelsCsv,
-  onDatasetMode,
+  onCaseJson,
   onRun
 }: {
   files: File[];
-  labelsCsv: string;
-  datasetMode: string;
+  caseJson: string;
   result: FractureBenchmarkResult | null;
   busy: boolean;
   onFiles: (files: File[]) => void;
-  onLabelsCsv: (value: string) => void;
-  onDatasetMode: (value: string) => void;
+  onCaseJson: (value: string) => void;
   onRun: () => void;
 }) {
-  const labeledCount = result?.metrics.labeled || 0;
+  const readyCount = files.length;
+  const groundTruthCases = useMemo<FractureSampleCase[]>(() => {
+    try {
+      const parsed = JSON.parse(caseJson || "{}");
+      return Array.isArray(parsed) ? parsed : Array.isArray(parsed.cases) ? parsed.cases : [];
+    } catch {
+      return [];
+    }
+  }, [caseJson]);
 
   function exportFractureBenchmark() {
     if (!result) return;
-    downloadFile("fracture-benchmark-results.json", JSON.stringify({ generated_at: new Date().toISOString(), ...result }, null, 2), "application/json");
+    downloadFile("fracture-localization-results.json", JSON.stringify({ generated_at: new Date().toISOString(), ...result }, null, 2), "application/json");
+  }
+
+  function downloadTemplate() {
+    downloadFile("fracture-10-ground-truth.json", caseJson || buildFractureCaseTemplate(files), "application/json");
+  }
+
+  async function loadBuiltInSamples() {
+    const response = await fetch("/fracture-samples/cases.json");
+    const metadata = await response.json();
+    const sampleFiles = await Promise.all((metadata.cases || []).map(async (item: FractureSampleCase) => {
+      const imageResponse = await fetch(item.image_url || `/fracture-samples/${item.file_name}`);
+      const blob = await imageResponse.blob();
+      return new File([blob], item.file_name, { type: blob.type || "image/jpeg" });
+    }));
+    onFiles(sampleFiles);
+    onCaseJson(JSON.stringify(metadata, null, 2));
   }
 
   return (
     <section className="workspace fracture-workspace">
       <div className="fracture-layout">
         <div className="panel">
-          <SectionTitle icon={<Bone />} title="Bone Fracture Detection Benchmark" caption="Batch X-ray evaluation for FracAtlas, MURA, or your own positive/negative image folders." />
-          <div className="fracture-mode-grid">
-            <label>
-              Dataset mode
-              <select value={datasetMode} onChange={(event) => onDatasetMode(event.target.value)}>
-                <option>mixed FracAtlas + MURA</option>
-                <option>FracAtlas fracture localization</option>
-                <option>MURA upper-extremity abnormality</option>
-                <option>custom fracture-vs-normal</option>
-              </select>
-            </label>
-            <label>
-              CSV labels
-              <input
-                type="file"
-                accept=".csv,text/csv,text/plain"
-                onChange={async (event) => onLabelsCsv(await event.target.files?.[0]?.text() || labelsCsv)}
-              />
-            </label>
+          <SectionTitle icon={<Bone />} title="10-Image Bone Fracture Benchmark" caption="Built-in FracAtlas X-rays with ground-truth boxes, type/count metadata, and downloadable evidence." />
+          <div className="fracture-actions">
+            <button className="primary" onClick={loadBuiltInSamples} disabled={busy}><ImageIcon /> Load Built-In Images</button>
+            <a className="secondary link-button" href="/fracture-samples/fracatlas-10-fracture-samples.zip" download>
+              <Download /> Download Images + JSON
+            </a>
           </div>
           <div className="fracture-upload-grid">
             <label className="upload-box">
               <Upload size={28} />
-              <span>{files.length ? `${files.length} X-ray image(s) selected` : "Upload many X-ray images"}</span>
+              <span>{files.length ? `${files.length}/10 X-ray image(s) selected` : "Upload 10 X-ray images"}</span>
               <input type="file" multiple accept="image/*,.png,.jpg,.jpeg,.webp" onChange={(event) => onFiles(Array.from(event.target.files || []))} />
             </label>
             <label className="upload-box">
               <Upload size={28} />
-              <span>Upload image folder</span>
+              <span>Upload folder of 10 images</span>
               <input
                 type="file"
                 multiple
@@ -720,36 +776,65 @@ function FractureBenchmark({
               />
             </label>
           </div>
+          <div className="fracture-actions">
+            <button className="secondary" onClick={() => onCaseJson(buildFractureCaseTemplate(files))}><FileText /> Create 10-Case JSON</button>
+            <button className="secondary" onClick={downloadTemplate}><Download /> Download JSON</button>
+          </div>
+          {groundTruthCases.length > 0 && (
+            <div className="fracture-sample-grid">
+              {groundTruthCases.slice(0, 10).map((item) => (
+                <div className="fracture-sample-card" key={item.file_name}>
+                  <div className="fracture-image-wrap">
+                    <img src={item.image_url || `/fracture-samples/${item.file_name}`} alt={`${item.fracture_type} X-ray`} />
+                    {item.boxes.map((box, index) => (
+                      <span
+                        key={`${item.file_name}-${index}`}
+                        className="truth-box"
+                        style={{
+                          left: `${box.x}%`,
+                          top: `${box.y}%`,
+                          width: `${box.width}%`,
+                          height: `${box.height}%`
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <strong>{item.fracture_type}</strong>
+                  <span>{item.mura_region} · {item.fracture_count} fracture(s)</span>
+                </div>
+              ))}
+            </div>
+          )}
           <textarea
             className="report-box labels-box"
-            value={labelsCsv}
-            onChange={(event) => onLabelsCsv(event.target.value)}
-            placeholder={"Optional labels CSV. Supported columns: filename,label,dataset,body_region,fracture_type\nExample:\nFracAtlas_001.png,fracture,FracAtlas,wrist,distal radius\nMURA_XR_HAND_002.png,normal,MURA,hand,"}
+            value={caseJson}
+            onChange={(event) => onCaseJson(event.target.value)}
+            placeholder={"Ground-truth JSON for the 10 images appears here. Edit fracture_type, fracture_count, and boxes before scoring.\nBox units are percentages: x, y, width, height."}
           />
           <button className="accent" onClick={onRun} disabled={busy}>
-            {busy ? <Loader2 className="spin" /> : <Target />} Run Fracture Benchmark
+            {busy ? <Loader2 className="spin" /> : <Target />} Score Boxes & Fractures
           </button>
           <div className="notice compact-notice">
             <AlertTriangle size={20} />
-            <p>Research benchmarking only. Predictions are not a diagnosis and should be checked by a radiologist.</p>
+            <p>Research benchmarking only. MURA does not include fracture subtype boxes, so this JSON is your ground truth for the 10-image benchmark.</p>
           </div>
         </div>
 
         <div className="panel fracture-guide">
-          <SectionTitle icon={<BarChart3 />} title="Evaluation Design" caption="How this benchmark scores fracture detection." />
+          <SectionTitle icon={<BarChart3 />} title="Scoring Design" caption="What was added for fracture localization scoring." />
           <div className="metric-list fracture-metric-list">
-            <span><CheckCircle2 size={16} /> Binary fracture vs normal</span>
-            <span><CheckCircle2 size={16} /> Sensitivity for missed fractures</span>
-            <span><CheckCircle2 size={16} /> Specificity for false alarms</span>
-            <span><CheckCircle2 size={16} /> Precision and F1</span>
-            <span><CheckCircle2 size={16} /> Body-region slices</span>
-            <span><CheckCircle2 size={16} /> FracAtlas/MURA label import</span>
+            <span><CheckCircle2 size={16} /> Localization mIoU, 45%</span>
+            <span><CheckCircle2 size={16} /> Fracture type accuracy, 20%</span>
+            <span><CheckCircle2 size={16} /> Fracture count accuracy, 15%</span>
+            <span><CheckCircle2 size={16} /> Fracture detection accuracy, 15%</span>
+            <span><CheckCircle2 size={16} /> Confidence alignment, 5%</span>
+            <span><CheckCircle2 size={16} /> Result and template download</span>
           </div>
           <div className="benchmark-notes">
             <h3>Best setup</h3>
-            <p>Use FracAtlas when you want fracture-vs-normal plus localization-style review. Use MURA when you want broad upper-extremity abnormal/normal benchmarking across shoulder, humerus, elbow, forearm, wrist, hand, and finger studies.</p>
-            <p>For clean metrics, upload a CSV keyed by filename. If you upload folders named positive/negative, fracture/normal, or abnormal/normal, the app will infer labels from the folder path.</p>
-            <p>{labeledCount ? `${labeledCount} labeled case(s) ready in the latest result.` : "No labeled result yet. Run a batch to populate metrics."}</p>
+            <p>Click Load Built-In Images to use 10 bundled FracAtlas X-rays with their existing fracture boxes. You can still edit the JSON or upload your own 10 images.</p>
+            <p>IoU is the main metric: every ground-truth box is compared with the best predicted box, then averaged as mIoU.</p>
+            <p>{result ? `${result.metrics.total} scored case(s) in the latest result.` : `${readyCount}/10 image(s) loaded.`}</p>
           </div>
         </div>
       </div>
@@ -762,13 +847,11 @@ function FractureBenchmark({
           </div>
           <FractureMetrics metrics={result.metrics} />
           <div className="dataset-breakdown">
-            {result.dataset_breakdown.map((item) => (
-              <div key={item.dataset} className="dataset-card">
-                <strong>{item.dataset}</strong>
-                <span>{item.metrics.labeled} labeled</span>
-                <span>Sens {formatMetric(item.metrics.sensitivity)}</span>
-                <span>Spec {formatMetric(item.metrics.specificity)}</span>
-                <span>F1 {formatMetric(item.metrics.f1)}</span>
+            {result.scoring.map((item) => (
+              <div key={item.metric} className="dataset-card">
+                <strong>{item.metric}</strong>
+                <span>{item.weight}% weight</span>
+                <span>{item.description}</span>
               </div>
             ))}
           </div>
@@ -777,9 +860,12 @@ function FractureBenchmark({
               <thead>
                 <tr>
                   <th>Image</th>
-                  <th>Truth</th>
-                  <th>Prediction</th>
-                  <th>Status</th>
+                  <th>Truth Type</th>
+                  <th>Predicted Type</th>
+                  <th>Boxes</th>
+                  <th>mIoU</th>
+                  <th>Count</th>
+                  <th>Case Score</th>
                   <th>Region</th>
                   <th>Confidence</th>
                   <th>Reason</th>
@@ -787,14 +873,17 @@ function FractureBenchmark({
               </thead>
               <tbody>
                 {result.cases.map((item) => (
-                  <tr key={`${item.file_name}-${item.match_status}`}>
+                  <tr key={`${item.file_name}-${item.scores.case_score}`}>
                     <td>{item.file_name}</td>
-                    <td>{item.ground_truth}</td>
-                    <td>{item.predicted_label}</td>
-                    <td><span className={`match ${item.match_status}`}>{item.match_status.toUpperCase()}</span></td>
-                    <td>{item.body_region}</td>
-                    <td>{item.confidence}%</td>
-                    <td>{item.rationale}</td>
+                    <td>{item.ground_truth.fracture_type}</td>
+                    <td>{item.prediction.predicted_fracture_type}</td>
+                    <td>{item.ground_truth.boxes.length} truth / {item.prediction.boxes.length} predicted</td>
+                    <td>{formatMetric(item.scores.mean_iou)}</td>
+                    <td>{item.ground_truth.fracture_count} truth / {item.prediction.predicted_fracture_count} predicted</td>
+                    <td><span className={`match ${metricColor(item.scores.case_score)}`}>{item.scores.case_score}%</span></td>
+                    <td>{item.ground_truth.mura_region}</td>
+                    <td>{item.prediction.confidence}%</td>
+                    <td>{item.prediction.rationale}</td>
                   </tr>
                 ))}
               </tbody>
@@ -814,14 +903,14 @@ function formatMetric(value: number | null) {
 function FractureMetrics({ metrics }: { metrics: FractureBenchmarkResult["metrics"] }) {
   return (
     <div className="score-grid fracture-score-grid">
-      <ScorePill score={metrics.accuracy ?? 0} label={`Accuracy ${formatMetric(metrics.accuracy)}`} />
-      <ScorePill score={metrics.sensitivity ?? 0} label={`Sensitivity ${formatMetric(metrics.sensitivity)}`} />
-      <ScorePill score={metrics.specificity ?? 0} label={`Specificity ${formatMetric(metrics.specificity)}`} />
-      <ScorePill score={metrics.f1 ?? 0} label={`F1 ${formatMetric(metrics.f1)}`} />
-      <ScorePill score={metrics.precision ?? 0} label={`Precision ${formatMetric(metrics.precision)}`} />
-      <ScorePill score={metrics.false_negative_rate === null ? 100 : 100 - metrics.false_negative_rate} label={`FN rate ${formatMetric(metrics.false_negative_rate)}`} />
-      <ScorePill score={metrics.false_positive_rate === null ? 100 : 100 - metrics.false_positive_rate} label={`FP rate ${formatMetric(metrics.false_positive_rate)}`} />
-      <ScorePill score={metrics.labeled ? 100 : 0} label={`${metrics.labeled}/${metrics.total} labeled`} />
+      <ScorePill score={metrics.overall_score} label={`Overall ${formatMetric(metrics.overall_score)}`} />
+      <ScorePill score={metrics.localization_miou} label={`mIoU ${formatMetric(metrics.localization_miou)}`} />
+      <ScorePill score={metrics.localization_score} label={`Localization ${formatMetric(metrics.localization_score)}`} />
+      <ScorePill score={metrics.fracture_type_accuracy} label={`Type ${formatMetric(metrics.fracture_type_accuracy)}`} />
+      <ScorePill score={metrics.fracture_count_accuracy} label={`Count ${formatMetric(metrics.fracture_count_accuracy)}`} />
+      <ScorePill score={metrics.detection_accuracy} label={`Detection ${formatMetric(metrics.detection_accuracy)}`} />
+      <ScorePill score={metrics.confidence_alignment} label={`Confidence ${formatMetric(metrics.confidence_alignment)}`} />
+      <ScorePill score={metrics.total === 10 ? 100 : metrics.total * 10} label={`${metrics.total}/10 scored`} />
     </div>
   );
 }

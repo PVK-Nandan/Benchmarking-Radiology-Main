@@ -4,67 +4,57 @@ import { generateVisionText } from "@/lib/llm";
 import { saveAuditEvent } from "@/lib/storage";
 import {
   calculateFractureMetrics,
-  findTruth,
+  findFractureCase,
   FractureBenchmarkCase,
   FracturePrediction,
-  inferDatasetHint,
-  inferTruthFromPath,
-  matchStatus,
-  normalizeTruthLabel,
-  parseGroundTruthCsv
+  normalizeBoxes,
+  parseFractureCaseJson,
+  scoreFractureCase
 } from "@/lib/fractureBenchmark";
 import { Provider } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function promptForFracture(fileName: string, datasetHint: string, benchmarkMode: string) {
-  return `You are assisting with a research-only bone fracture detection benchmark for X-ray images.
+function promptForFracture(fileName: string) {
+  return `You are assisting with a research-only bone fracture localization benchmark for X-ray images.
 
 Image file: ${fileName}
-Dataset hint: ${datasetHint}
-Benchmark mode: ${benchmarkMode || "general fracture detection"}
 
 Return only a JSON object with this exact shape:
 {
   "file_name": "${fileName}",
-  "dataset_hint": "${datasetHint}",
-  "body_region": "wrist|hand|forearm|elbow|humerus|shoulder|ankle|foot|knee|femur|hip|clavicle|rib|spine|pelvis|unknown",
-  "predicted_label": "fracture|normal|unknown",
+  "mura_region": "shoulder|humerus|elbow|forearm|wrist|hand|finger|unknown",
+  "predicted_fracture": "fracture|no fracture|unknown",
+  "predicted_fracture_type": "short fracture type, e.g. distal radius, scaphoid, metacarpal, phalanx, radial head, olecranon, humeral shaft, clavicle, or unknown",
+  "predicted_fracture_count": 0,
+  "boxes": [{"x": 0-100, "y": 0-100, "width": 0-100, "height": 0-100}],
   "confidence": 0-100,
-  "fracture_type": "short label or unknown",
-  "laterality": "left|right|bilateral|unknown",
   "visible_findings": ["short visible radiographic findings"],
-  "localization": "anatomic location if visible",
-  "quality": "diagnostic|limited|non_xray",
-  "rationale": "brief reasoning based on visible X-ray evidence",
-  "recommendations": ["benchmark or review recommendation"],
-  "warnings": ["limitations, uncertainty, or safety warnings"]
+  "rationale": "brief reasoning based only on visible X-ray evidence",
+  "warnings": ["limitations or uncertainty"]
 }
 
-Decision rule:
-- Mark "fracture" when there is visible cortical break, lucency, displaced fragment, buckle/torus deformity, avulsion fragment, or strong fracture-specific evidence.
-- Mark "normal" when no fracture-specific evidence is visible.
-- Mark "unknown" if the image is not a usable X-ray or the view is too limited.
+Bounding-box rules:
+- Coordinates must be percentages of the image size.
+- Box the visible fracture line, cortical break, fragment, or most suspicious localized fracture region.
+- Return one box per visible fracture. If no fracture is visible, return an empty boxes array.
 - Do not invent patient identifiers. Do not give clinical clearance.`;
 }
 
-function parsePrediction(text: string, fileName: string, datasetHint: string): FracturePrediction {
+function parsePrediction(text: string, fileName: string): FracturePrediction {
   const jsonText = text.trim().replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```$/i, "").trim();
   const parsed = JSON.parse(jsonText);
   return {
     file_name: String(parsed.file_name || fileName),
-    dataset_hint: String(parsed.dataset_hint || datasetHint),
-    body_region: String(parsed.body_region || "unknown"),
-    predicted_label: normalizeTruthLabel(parsed.predicted_label),
-    confidence: Math.max(0, Math.min(100, Number(parsed.confidence) || 0)),
-    fracture_type: String(parsed.fracture_type || "unknown"),
-    laterality: String(parsed.laterality || "unknown"),
+    mura_region: String(parsed.mura_region || "unknown"),
+    predicted_fracture: String(parsed.predicted_fracture || "unknown"),
+    predicted_fracture_type: String(parsed.predicted_fracture_type || "unknown"),
+    predicted_fracture_count: Math.max(0, Math.round(Number(parsed.predicted_fracture_count) || 0)),
+    boxes: normalizeBoxes(parsed.boxes || []),
+    confidence: Math.max(0, Math.min(100, Math.round(Number(parsed.confidence) || 0))),
     visible_findings: Array.isArray(parsed.visible_findings) ? parsed.visible_findings.map(String) : [],
-    localization: String(parsed.localization || "unknown"),
-    quality: ["diagnostic", "limited", "non_xray"].includes(parsed.quality) ? parsed.quality : "limited",
     rationale: String(parsed.rationale || ""),
-    recommendations: Array.isArray(parsed.recommendations) ? parsed.recommendations.map(String) : [],
     warnings: Array.isArray(parsed.warnings) ? parsed.warnings.map(String) : []
   };
 }
@@ -73,22 +63,22 @@ export async function POST(request: Request) {
   try {
     const actor = getCurrentUser(request);
     if (!actor) return NextResponse.json({ error: "Login required before running a benchmark." }, { status: 401 });
+
     const form = await request.formData();
     const files = form.getAll("images").filter((item): item is File => item instanceof File);
-    if (!files.length) {
-      return NextResponse.json({ error: "Upload one or more X-ray images for fracture benchmarking." }, { status: 400 });
-    }
-    if (files.length > 40) {
-      return NextResponse.json({ error: "Benchmark up to 40 images per run to keep the review responsive." }, { status: 400 });
+    if (files.length !== 10) {
+      return NextResponse.json({ error: "Upload exactly 10 X-ray images for this fracture benchmark." }, { status: 400 });
     }
 
+    const metadataJson = form.get("caseJson")?.toString() || "";
+    if (!metadataJson.trim()) {
+      return NextResponse.json({ error: "Add ground-truth case JSON with fracture type, fracture count, and bounding boxes." }, { status: 400 });
+    }
+
+    const groundTruthCases = parseFractureCaseJson(metadataJson);
     const provider = (form.get("provider")?.toString() || process.env.DEFAULT_REPORT_PROVIDER || "openai") as Provider;
     const model = form.get("model")?.toString() || undefined;
     const apiKey = form.get("apiKey")?.toString() || undefined;
-    const datasetMode = form.get("datasetMode")?.toString() || "mixed";
-    const labelCsv = form.get("labelsCsv")?.toString() || "";
-    const truths = parseGroundTruthCsv(labelCsv);
-
     const cases: FractureBenchmarkCase[] = [];
     const errors: string[] = [];
 
@@ -98,9 +88,13 @@ export async function POST(request: Request) {
         continue;
       }
 
+      const groundTruth = findFractureCase(image.name, groundTruthCases);
+      if (!groundTruth) {
+        errors.push(`${image.name}: no matching ground-truth JSON case.`);
+        continue;
+      }
+
       try {
-        const explicitTruth = findTruth(image.name, truths);
-        const datasetHint = inferDatasetHint(image.name, explicitTruth?.dataset || datasetMode);
         const base64 = Buffer.from(await image.arrayBuffer()).toString("base64");
         const text = await generateVisionText({
           provider,
@@ -108,17 +102,15 @@ export async function POST(request: Request) {
           apiKey,
           base64,
           mimeType: image.type || "image/png",
-          prompt: promptForFracture(image.name, datasetHint, datasetMode),
+          prompt: promptForFracture(image.name),
           temperature: 0
         });
-        const prediction = parsePrediction(text, image.name, datasetHint);
-        const groundTruth = explicitTruth?.label || inferTruthFromPath(image.name);
+        const prediction = parsePrediction(text, image.name);
         cases.push({
-          ...prediction,
+          file_name: image.name,
           ground_truth: groundTruth,
-          expected_dataset: explicitTruth?.dataset || datasetHint,
-          expected_body_region: explicitTruth?.body_region || prediction.body_region,
-          match_status: matchStatus(prediction.predicted_label, groundTruth)
+          prediction,
+          scores: scoreFractureCase(groundTruth, prediction)
         });
       } catch (error: any) {
         errors.push(`${image.name}: ${error.message || "prediction failed"}`);
@@ -126,33 +118,31 @@ export async function POST(request: Request) {
     }
 
     const metrics = calculateFractureMetrics(cases);
-    const datasets = Array.from(new Set(cases.map((item) => item.expected_dataset || item.dataset_hint || "Custom upload")));
-    const dataset_breakdown = datasets.map((dataset) => ({
-      dataset,
-      metrics: calculateFractureMetrics(cases.filter((item) => (item.expected_dataset || item.dataset_hint || "Custom upload") === dataset))
-    }));
-
     const payload = {
-      summary: metrics.labeled
-        ? `Evaluated ${metrics.labeled} labeled image(s): sensitivity ${metrics.sensitivity ?? "n/a"}%, specificity ${metrics.specificity ?? "n/a"}%, F1 ${metrics.f1 ?? "n/a"}%.`
-        : `Evaluated ${cases.length} image(s). Add FracAtlas/MURA labels or use positive/negative folders to compute ground-truth metrics.`,
+      summary: `Evaluated ${cases.length}/10 fracture localization case(s). Overall ${metrics.overall_score}%, mIoU ${metrics.localization_miou}%, type ${metrics.fracture_type_accuracy}%, count ${metrics.fracture_count_accuracy}%.`,
       metrics,
       cases,
-      dataset_breakdown,
+      scoring: [
+        { metric: "Localization mIoU", weight: 45, description: "Compares each ground-truth fracture box with the best predicted box using intersection-over-union." },
+        { metric: "Fracture type accuracy", weight: 20, description: "Checks whether the predicted fracture subtype matches the ground-truth subtype." },
+        { metric: "Fracture count accuracy", weight: 15, description: "Scores whether the predicted number of fractures matches the JSON fracture_count." },
+        { metric: "Detection accuracy", weight: 15, description: "Checks fracture vs no-fracture detection for each case." },
+        { metric: "Confidence alignment", weight: 5, description: "Rewards calibrated high confidence when a fracture is detected." }
+      ],
       guidance: [
-        "Use FracAtlas labels for fracture localization and binary fracture-vs-normal evaluation.",
-        "Use MURA positive/negative study folders or a CSV label file for upper-extremity abnormality benchmarking.",
-        "Review false negatives first because missed fractures are the highest-risk benchmark failures.",
-        "Keep a held-out split by patient/study, not by image, to avoid leakage."
+        "The built-in sample uses FracAtlas images because FracAtlas includes fracture localization annotations.",
+        "MURA can still be used for uploaded X-rays, but MURA does not ship fracture bounding boxes; provide JSON boxes when using MURA images.",
+        "Keep box coordinates as percentages so the JSON remains portable across image sizes.",
+        "Review low-IoU cases visually before trusting the aggregate score."
       ],
       errors
     };
-    await saveAuditEvent("fracture.benchmark", actor, {
+
+    await saveAuditEvent("fracture.localization_benchmark", actor, {
       image_count: files.length,
-      labeled: metrics.labeled,
-      sensitivity: metrics.sensitivity,
-      specificity: metrics.specificity,
-      f1: metrics.f1
+      scored_cases: cases.length,
+      overall_score: metrics.overall_score,
+      localization_miou: metrics.localization_miou
     });
     return NextResponse.json(payload);
   } catch (error: any) {

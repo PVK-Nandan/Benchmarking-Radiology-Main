@@ -616,6 +616,76 @@ input:focus, select:focus, textarea:focus {
   margin-bottom: 14px;
 }
 
+.fracture-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.fracture-actions .primary,
+.fracture-actions .secondary {
+  width: auto;
+  margin-top: 0;
+}
+
+.fracture-sample-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.fracture-sample-card {
+  min-width: 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: #081423;
+  border: 1px solid #193856;
+}
+
+.fracture-sample-card strong,
+.fracture-sample-card span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.fracture-sample-card strong {
+  margin-top: 8px;
+  color: #d8e9fb;
+  font-size: 12px;
+}
+
+.fracture-sample-card span {
+  margin-top: 4px;
+  color: #8ea7c0;
+  font-size: 11px;
+}
+
+.fracture-image-wrap {
+  position: relative;
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #050b12;
+  border: 1px solid #263f5f;
+}
+
+.fracture-image-wrap img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.truth-box {
+  position: absolute;
+  border: 2px solid var(--green);
+  background: rgba(24, 207, 147, .12);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .45);
+}
+
 .labels-box {
   min-height: 170px;
   font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
@@ -729,13 +799,19 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid rgba(24, 207, 147, .32);
 }
 
-.match.fp {
+.match.good {
+  color: var(--green);
+  background: rgba(24, 207, 147, .12);
+  border: 1px solid rgba(24, 207, 147, .32);
+}
+
+.match.fp, .match.warn {
   color: var(--amber);
   background: rgba(245, 165, 26, .12);
   border: 1px solid rgba(245, 165, 26, .35);
 }
 
-.match.fn {
+.match.fn, .match.bad {
   color: var(--red);
   background: rgba(255, 91, 99, .12);
   border: 1px solid rgba(255, 91, 99, .35);
@@ -1311,7 +1387,7 @@ details p {
     width: max-content;
   }
 
-  .score-grid, .strict-grid, .diff-grid, .history-item summary, .dataset-breakdown, .audit-item {
+  .score-grid, .strict-grid, .diff-grid, .history-item summary, .dataset-breakdown, .audit-item, .fracture-sample-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -1322,7 +1398,7 @@ details p {
     padding-right: 16px;
   }
 
-  .settings-grid, .metric-list, .score-row, .score-grid, .strict-grid, .diff-grid, .history-item summary, .fracture-mode-grid, .fracture-upload-grid, .dataset-breakdown, .audit-item, .login-stats {
+  .settings-grid, .metric-list, .score-row, .score-grid, .strict-grid, .diff-grid, .history-item summary, .fracture-mode-grid, .fracture-upload-grid, .dataset-breakdown, .audit-item, .login-stats, .fracture-sample-grid {
     grid-template-columns: 1fr;
   }
 
