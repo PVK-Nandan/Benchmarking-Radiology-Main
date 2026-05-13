@@ -1,4 +1,4 @@
-export type Provider = "openai";
+export type Provider = "openai" | "gemini";
 
 export type ReportComparison = {
   overall_score: number;

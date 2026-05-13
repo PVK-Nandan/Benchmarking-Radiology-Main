@@ -177,8 +177,10 @@ export async function POST(request: Request) {
     const actor = getCurrentUser(request);
     if (!actor) return NextResponse.json({ error: "Login required before running a benchmark." }, { status: 401 });
     const form = await request.formData();
-    const provider: Provider = "openai";
-    const model = process.env.OPENAI_JUDGE_MODEL || "gpt-4.1-mini";
+    const provider = (process.env.DEFAULT_REPORT_PROVIDER || "openai") as Provider;
+    const model = provider === "gemini"
+      ? (process.env.GEMINI_MODEL || "gemini-3.1-flash-lite")
+      : (process.env.OPENAI_JUDGE_MODEL || "gpt-4.1-mini");
     const reportModel = form.get("reportModel")?.toString() || undefined;
     const apiKey = form.get("apiKey")?.toString() || undefined;
     const referenceReport = form.get("referenceReport")?.toString() || "";

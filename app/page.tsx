@@ -188,8 +188,8 @@ function ScorePill({ score, label }: { score: number; label: string }) {
 
 export default function Home() {
   const [tab, setTab] = useState<Tab>("report");
-  const provider: Provider = "openai";
-  const [reportModel, setReportModel] = useState("gpt-4.1-mini");
+  const provider: Provider = "gemini";
+  const [reportModel, setReportModel] = useState("gemini-3.1-flash-lite");
   const [apiKey, setApiKey] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState("");
@@ -436,7 +436,7 @@ export default function Home() {
           <div className="settings-grid">
             <label>
               Report model
-              <input value={reportModel} onChange={(event) => setReportModel(event.target.value)} />
+              <input value={reportModel} readOnly />
             </label>
             <label>
               Optional API key
