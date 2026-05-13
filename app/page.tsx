@@ -704,6 +704,7 @@ function FractureBenchmark({
   const [mode, setMode] = useState<"ai" | "manual">("ai");
   const [predictionJson, setPredictionJson] = useState("");
   const [predictionFileName, setPredictionFileName] = useState("");
+  const [userImages, setUserImages] = useState<{ fileName: string; url: string }[]>([]);
 
   function exportFractureBenchmark() {
     if (!result) return;
@@ -734,6 +735,15 @@ function FractureBenchmark({
     reader.readAsText(file);
   }
 
+  function handleUserImages(event: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files || []);
+    const previews = files.map((file) => ({
+      fileName: file.name,
+      url: URL.createObjectURL(file)
+    }));
+    setUserImages(previews);
+  }
+
   return (
     <section className="workspace fracture-workspace">
       <div className="fracture-layout">
@@ -741,12 +751,14 @@ function FractureBenchmark({
           <SectionTitle icon={<Bone />} title="10-Image Bone Fracture Benchmark" caption="FracAtlas X-rays from MURA regions. Ground-truth boxes are hidden and revealed only after scoring." />
 
           <div className="fracture-sample-grid">
-            {BUILT_IN_IMAGES.map((img) => {
+            {BUILT_IN_IMAGES.map((img, index) => {
               const revealed = result?.groundTruth?.find((gt) => gt.file_name === img.file_name);
+              const uploaded = userImages.find((u) => u.fileName === img.file_name) || userImages[index];
+              const imgSrc = uploaded?.url || `/fracture-samples/${img.file_name}`;
               return (
                 <div className="fracture-sample-card" key={img.file_name}>
                   <div className="fracture-image-wrap">
-                    <img src={`/fracture-samples/${img.file_name}`} alt={`${img.mura_region} X-ray`} />
+                    <img src={imgSrc} alt={`${img.mura_region} X-ray`} />
                     {revealed?.boxes.map((box, i) => (
                       <span key={i} className="truth-box" style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.width}%`, height: `${box.height}%` }} />
                     ))}
@@ -779,22 +791,37 @@ function FractureBenchmark({
           </div>
 
           {mode === "manual" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "0.5rem" }}>
               <p style={{ fontSize: "0.85rem", color: "var(--muted)", margin: 0 }}>
-                Download the template JSON above, fill in your model&apos;s predicted fracture type, count, and bounding boxes, then upload it here.
+                Step 1 — Download the 10 images above and run your model on them.<br />
+                Step 2 — Upload your images below so they appear in the grid.<br />
+                Step 3 — Download the template JSON, fill in your predictions, and upload it.<br />
+                Step 4 — Click Compare Scores.
               </p>
-              <label className="upload-box" style={{ minHeight: "60px" }}>
+
+              <label className="upload-box" style={{ minHeight: "64px" }}>
                 <Upload size={20} />
-                <span>{predictionFileName ? `${predictionFileName} loaded` : "Upload your predictions JSON"}</span>
+                <span>
+                  {userImages.length > 0
+                    ? `${userImages.length} image(s) uploaded — showing in grid above`
+                    : "Step 2 — Upload your 10 X-ray images"}
+                </span>
+                <input type="file" multiple accept="image/*,.png,.jpg,.jpeg,.webp" onChange={handleUserImages} />
+              </label>
+
+              <label className="upload-box" style={{ minHeight: "64px" }}>
+                <FileText size={20} />
+                <span>{predictionFileName ? `${predictionFileName} loaded` : "Step 3 — Upload your predictions JSON"}</span>
                 <input type="file" accept=".json,application/json" onChange={handlePredictionFile} />
               </label>
+
               {predictionJson && (
                 <textarea
                   className="report-box labels-box"
-                  style={{ minHeight: "120px", fontSize: "0.78rem" }}
+                  style={{ minHeight: "100px", fontSize: "0.78rem" }}
                   value={predictionJson}
                   onChange={(e) => setPredictionJson(e.target.value)}
-                  placeholder="Paste or edit your predictions JSON here"
+                  placeholder="Your predictions JSON appears here. You can also paste it directly."
                 />
               )}
             </div>
