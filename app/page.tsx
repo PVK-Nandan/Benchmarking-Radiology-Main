@@ -29,7 +29,7 @@ import type { StoredReportTest } from "@/lib/types";
 import type { FractureBenchmarkResult } from "@/lib/fractureBenchmark";
 
 type Tab = "report" | "fracture" | "dicom" | "results" | "history" | "audit" | "instructions";
-type Provider = "openai";
+type Provider = "openai" | "gemini";
 
 const DICOM_VIEWER_URL = "https://dicomviewer.net/viewer2/localbasic";
 
