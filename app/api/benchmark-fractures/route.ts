@@ -60,6 +60,23 @@ function parsePrediction(text: string, fileName: string): FracturePrediction {
   };
 }
 
+function parseUserPredictions(json: string): FracturePrediction[] {
+  const parsed = JSON.parse(json);
+  const rows = Array.isArray(parsed) ? parsed : Array.isArray(parsed.cases) ? parsed.cases : [];
+  return rows.map((row: any) => ({
+    file_name: String(row.file_name || ""),
+    mura_region: String(row.mura_region || "unknown"),
+    predicted_fracture: String(row.predicted_fracture || "unknown"),
+    predicted_fracture_type: String(row.predicted_fracture_type || "unknown"),
+    predicted_fracture_count: Math.max(0, Math.round(Number(row.predicted_fracture_count) || 0)),
+    boxes: normalizeBoxes(row.boxes || []),
+    confidence: Math.max(0, Math.min(100, Math.round(Number(row.confidence) || 80))),
+    visible_findings: Array.isArray(row.visible_findings) ? row.visible_findings.map(String) : [],
+    rationale: String(row.rationale || "User-provided prediction"),
+    warnings: Array.isArray(row.warnings) ? row.warnings.map(String) : []
+  })).filter((p) => p.file_name);
+}
+
 export async function POST(request: Request) {
   try {
     const actor = getCurrentUser(request);
@@ -69,9 +86,26 @@ export async function POST(request: Request) {
     const provider = (form.get("provider")?.toString() || process.env.DEFAULT_REPORT_PROVIDER || "openai") as Provider;
     const model = form.get("model")?.toString() || undefined;
     const apiKey = form.get("apiKey")?.toString() || undefined;
+    const userPredictionsJson = form.get("userPredictions")?.toString() || "";
     const cases: FractureBenchmarkCase[] = [];
     const errors: string[] = [];
 
+    if (userPredictionsJson.trim()) {
+      // Manual mode — user uploaded their own model's predictions
+      const predictions = parseUserPredictions(userPredictionsJson);
+      for (const gt of FRACTURE_GROUND_TRUTH) {
+        const prediction = predictions.find((p) =>
+          p.file_name.toLowerCase().includes(gt.file_name.toLowerCase()) ||
+          gt.file_name.toLowerCase().includes(p.file_name.toLowerCase())
+        );
+        if (!prediction) {
+          errors.push(`${gt.file_name}: no matching prediction found in uploaded JSON.`);
+          continue;
+        }
+        cases.push({ file_name: gt.file_name, ground_truth: gt, prediction, scores: scoreFractureCase(gt, prediction) });
+      }
+    } else {
+      // AI mode — run the built-in model on each image
     for (const gt of FRACTURE_GROUND_TRUTH) {
       try {
         const imagePath = path.join(process.cwd(), "public", "fracture-samples", gt.file_name);
@@ -99,10 +133,12 @@ export async function POST(request: Request) {
         errors.push(`${gt.file_name}: ${error.message || "prediction failed"}`);
       }
     }
+    } // end AI mode
 
+    const mode = userPredictionsJson.trim() ? "manual" : "ai";
     const metrics = calculateFractureMetrics(cases);
     const payload = {
-      summary: `Evaluated ${cases.length}/10 fracture localization case(s). Overall ${metrics.overall_score}%, mIoU ${metrics.localization_miou}%, type ${metrics.fracture_type_accuracy}%, count ${metrics.fracture_count_accuracy}%.`,
+      summary: `[${mode === "manual" ? "Your Model" : "Built-in AI"}] Evaluated ${cases.length}/10 case(s). Overall ${metrics.overall_score}%, mIoU ${metrics.localization_miou}%, type ${metrics.fracture_type_accuracy}%, count ${metrics.fracture_count_accuracy}%.`,
       metrics,
       cases,
       groundTruth: FRACTURE_GROUND_TRUTH,

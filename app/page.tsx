@@ -341,20 +341,22 @@ export default function Home() {
     }
   }
 
-  async function runFractureBenchmark() {
+  async function runFractureBenchmark(userPredictions?: string) {
     setBusy("fracture");
     setFractureResult(null);
-    log("Running 10-case fracture localization benchmark — ground truth hidden until scoring completes.");
+    const modeLabel = userPredictions ? "your model's predictions" : "built-in AI";
+    log(`Running 10-case fracture benchmark using ${modeLabel} — ground truth hidden until complete.`);
     const form = new FormData();
     form.append("provider", provider);
     form.append("model", reportModel);
     if (apiKey.trim()) form.append("apiKey", apiKey.trim());
+    if (userPredictions) form.append("userPredictions", userPredictions);
     try {
       const response = await fetch("/api/benchmark-fractures", { method: "POST", body: form });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error);
       setFractureResult(json);
-      log(`Fracture benchmark complete — overall ${json.metrics?.overall_score || 0}%, mIoU ${json.metrics?.localization_miou || 0}%. Ground truth now revealed.`);
+      log(`Fracture benchmark complete — overall ${json.metrics?.overall_score || 0}%, mIoU ${json.metrics?.localization_miou || 0}%. Ground truth revealed.`);
     } catch (error: any) {
       log(`Fracture benchmark failed: ${error.message}`);
     } finally {
@@ -697,8 +699,12 @@ function FractureBenchmark({
 }: {
   result: FractureBenchmarkResult | null;
   busy: boolean;
-  onRun: () => void;
+  onRun: (userPredictions?: string) => void;
 }) {
+  const [mode, setMode] = useState<"ai" | "manual">("ai");
+  const [predictionJson, setPredictionJson] = useState("");
+  const [predictionFileName, setPredictionFileName] = useState("");
+
   function exportFractureBenchmark() {
     if (!result) return;
     downloadFile("fracture-localization-results.json", JSON.stringify({ generated_at: new Date().toISOString(), ...result }, null, 2), "application/json");
@@ -717,6 +723,15 @@ function FractureBenchmark({
       }))
     };
     downloadFile("fracture-prediction-template.json", JSON.stringify(template, null, 2), "application/json");
+  }
+
+  function handlePredictionFile(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setPredictionFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (e) => setPredictionJson(String(e.target?.result || ""));
+    reader.readAsText(file);
   }
 
   return (
@@ -758,7 +773,38 @@ function FractureBenchmark({
             </button>
           </div>
 
-          <button className="accent" onClick={onRun} disabled={busy}>
+          <div className="login-tabs" style={{ marginTop: "1rem" }}>
+            <button className={mode === "ai" ? "active" : ""} onClick={() => setMode("ai")}>Built-in AI</button>
+            <button className={mode === "manual" ? "active" : ""} onClick={() => setMode("manual")}>Upload My Model&apos;s Predictions</button>
+          </div>
+
+          {mode === "manual" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginTop: "0.5rem" }}>
+              <p style={{ fontSize: "0.85rem", color: "var(--muted)", margin: 0 }}>
+                Download the template JSON above, fill in your model&apos;s predicted fracture type, count, and bounding boxes, then upload it here.
+              </p>
+              <label className="upload-box" style={{ minHeight: "60px" }}>
+                <Upload size={20} />
+                <span>{predictionFileName ? `${predictionFileName} loaded` : "Upload your predictions JSON"}</span>
+                <input type="file" accept=".json,application/json" onChange={handlePredictionFile} />
+              </label>
+              {predictionJson && (
+                <textarea
+                  className="report-box labels-box"
+                  style={{ minHeight: "120px", fontSize: "0.78rem" }}
+                  value={predictionJson}
+                  onChange={(e) => setPredictionJson(e.target.value)}
+                  placeholder="Paste or edit your predictions JSON here"
+                />
+              )}
+            </div>
+          )}
+
+          <button
+            className="accent"
+            onClick={() => onRun(mode === "manual" ? predictionJson : undefined)}
+            disabled={busy || (mode === "manual" && !predictionJson.trim())}
+          >
             {busy ? <Loader2 className="spin" /> : <Target />}
             {busy ? "Scoring… ground truth hidden until complete" : "Compare Scores"}
           </button>
