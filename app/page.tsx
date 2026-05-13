@@ -201,7 +201,6 @@ export default function Home() {
   const [busy, setBusy] = useState("");
   const [logs, setLogs] = useState<string[]>(["System ready. Add your API key or configure environment variables on Vercel."]);
   const [fractureImages, setFractureImages] = useState<File[]>([]);
-  const [fractureCaseJson, setFractureCaseJson] = useState("");
   const [fractureResult, setFractureResult] = useState<FractureBenchmarkResult | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [googleClientId, setGoogleClientId] = useState("");
@@ -343,33 +342,19 @@ export default function Home() {
   }
 
   async function runFractureBenchmark() {
-    if (fractureImages.length !== 10) {
-      log("Upload or load exactly 10 X-ray images before running fracture localization scoring.");
-      return;
-    }
-    if (!fractureCaseJson.trim()) {
-      log("Create or paste the 10-case fracture JSON before scoring.");
-      return;
-    }
     setBusy("fracture");
     setFractureResult(null);
-    log("Running 10-case fracture localization benchmark with bounding-box scoring.");
+    log("Running 10-case fracture localization benchmark — ground truth hidden until scoring completes.");
     const form = new FormData();
     form.append("provider", provider);
     form.append("model", reportModel);
-    form.append("caseJson", fractureCaseJson);
     if (apiKey.trim()) form.append("apiKey", apiKey.trim());
-    fractureImages.forEach((file) => {
-      const path = (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name;
-      form.append("images", file, path);
-    });
-
     try {
       const response = await fetch("/api/benchmark-fractures", { method: "POST", body: form });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error);
       setFractureResult(json);
-      log(`Fracture localization benchmark complete: overall ${json.metrics?.overall_score || 0}%, mIoU ${json.metrics?.localization_miou || 0}%.`);
+      log(`Fracture benchmark complete — overall ${json.metrics?.overall_score || 0}%, mIoU ${json.metrics?.localization_miou || 0}%. Ground truth now revealed.`);
     } catch (error: any) {
       log(`Fracture benchmark failed: ${error.message}`);
     } finally {
@@ -483,15 +468,8 @@ export default function Home() {
 
       {tab === "fracture" && (
         <FractureBenchmark
-          files={fractureImages}
-          caseJson={fractureCaseJson}
           result={fractureResult}
           busy={busy === "fracture"}
-          onFiles={(files) => {
-            setFractureImages(files);
-            setFractureCaseJson((current) => current.trim() ? current : buildFractureCaseTemplate(files));
-          }}
-          onCaseJson={setFractureCaseJson}
           onRun={runFractureBenchmark}
         />
       )}
@@ -699,142 +677,112 @@ function LoginGate({
   );
 }
 
+const BUILT_IN_IMAGES = [
+  { file_name: "fracatlas_01_IMG0000019.jpg", mura_region: "hand" },
+  { file_name: "fracatlas_02_IMG0000025.jpg", mura_region: "hand" },
+  { file_name: "fracatlas_03_IMG0000261.jpg", mura_region: "hand" },
+  { file_name: "fracatlas_04_IMG0000307.jpg", mura_region: "hand" },
+  { file_name: "fracatlas_05_IMG0000092.jpg", mura_region: "leg" },
+  { file_name: "fracatlas_06_IMG0000466.jpg", mura_region: "leg" },
+  { file_name: "fracatlas_07_IMG0002180.jpg", mura_region: "hip" },
+  { file_name: "fracatlas_08_IMG0003341.jpg", mura_region: "hip" },
+  { file_name: "fracatlas_09_IMG0002302.jpg", mura_region: "shoulder" },
+  { file_name: "fracatlas_10_IMG0002620.jpg", mura_region: "shoulder" }
+];
+
 function FractureBenchmark({
-  files,
-  caseJson,
   result,
   busy,
-  onFiles,
-  onCaseJson,
   onRun
 }: {
-  files: File[];
-  caseJson: string;
   result: FractureBenchmarkResult | null;
   busy: boolean;
-  onFiles: (files: File[]) => void;
-  onCaseJson: (value: string) => void;
   onRun: () => void;
 }) {
-  const readyCount = files.length;
-  const groundTruthCases = useMemo<FractureSampleCase[]>(() => {
-    try {
-      const parsed = JSON.parse(caseJson || "{}");
-      return Array.isArray(parsed) ? parsed : Array.isArray(parsed.cases) ? parsed.cases : [];
-    } catch {
-      return [];
-    }
-  }, [caseJson]);
-
   function exportFractureBenchmark() {
     if (!result) return;
     downloadFile("fracture-localization-results.json", JSON.stringify({ generated_at: new Date().toISOString(), ...result }, null, 2), "application/json");
   }
 
   function downloadTemplate() {
-    downloadFile("fracture-10-ground-truth.json", caseJson || buildFractureCaseTemplate(files), "application/json");
-  }
-
-  async function loadBuiltInSamples() {
-    const response = await fetch("/fracture-samples/cases.json");
-    const metadata = await response.json();
-    const sampleFiles = await Promise.all((metadata.cases || []).map(async (item: FractureSampleCase) => {
-      const imageResponse = await fetch(item.image_url || `/fracture-samples/${item.file_name}`);
-      const blob = await imageResponse.blob();
-      return new File([blob], item.file_name, { type: blob.type || "image/jpeg" });
-    }));
-    onFiles(sampleFiles);
-    onCaseJson(JSON.stringify(metadata, null, 2));
+    const template = {
+      instructions: "Fill in your model's predicted fracture boxes for each image. Coordinates are percentages (0-100) of image width/height.",
+      cases: BUILT_IN_IMAGES.map((img) => ({
+        file_name: img.file_name,
+        mura_region: img.mura_region,
+        predicted_fracture: "",
+        predicted_fracture_type: "",
+        predicted_fracture_count: 0,
+        boxes: []
+      }))
+    };
+    downloadFile("fracture-prediction-template.json", JSON.stringify(template, null, 2), "application/json");
   }
 
   return (
     <section className="workspace fracture-workspace">
       <div className="fracture-layout">
         <div className="panel">
-          <SectionTitle icon={<Bone />} title="10-Image Bone Fracture Benchmark" caption="Built-in FracAtlas X-rays with ground-truth boxes, type/count metadata, and downloadable evidence." />
-          <div className="fracture-actions">
-            <button className="primary" onClick={loadBuiltInSamples} disabled={busy}><ImageIcon /> Load Built-In Images</button>
-            <a className="secondary link-button" href="/fracture-samples/fracatlas-10-fracture-samples.zip" download>
-              <Download /> Download Images + JSON
-            </a>
-          </div>
-          <div className="fracture-upload-grid">
-            <label className="upload-box">
-              <Upload size={28} />
-              <span>{files.length ? `${files.length}/10 X-ray image(s) selected` : "Upload 10 X-ray images"}</span>
-              <input type="file" multiple accept="image/*,.png,.jpg,.jpeg,.webp" onChange={(event) => onFiles(Array.from(event.target.files || []))} />
-            </label>
-            <label className="upload-box">
-              <Upload size={28} />
-              <span>Upload folder of 10 images</span>
-              <input
-                type="file"
-                multiple
-                accept="image/*,.png,.jpg,.jpeg,.webp"
-                onChange={(event) => onFiles(Array.from(event.target.files || []))}
-                {...({ webkitdirectory: "", directory: "" } as any)}
-              />
-            </label>
-          </div>
-          <div className="fracture-actions">
-            <button className="secondary" onClick={() => onCaseJson(buildFractureCaseTemplate(files))}><FileText /> Create 10-Case JSON</button>
-            <button className="secondary" onClick={downloadTemplate}><Download /> Download JSON</button>
-          </div>
-          {groundTruthCases.length > 0 && (
-            <div className="fracture-sample-grid">
-              {groundTruthCases.slice(0, 10).map((item) => (
-                <div className="fracture-sample-card" key={item.file_name}>
+          <SectionTitle icon={<Bone />} title="10-Image Bone Fracture Benchmark" caption="FracAtlas X-rays from MURA regions. Ground-truth boxes are hidden and revealed only after scoring." />
+
+          <div className="fracture-sample-grid">
+            {BUILT_IN_IMAGES.map((img) => {
+              const revealed = result?.groundTruth?.find((gt) => gt.file_name === img.file_name);
+              return (
+                <div className="fracture-sample-card" key={img.file_name}>
                   <div className="fracture-image-wrap">
-                    <img src={item.image_url || `/fracture-samples/${item.file_name}`} alt={`${item.fracture_type} X-ray`} />
-                    {item.boxes.map((box, index) => (
-                      <span
-                        key={`${item.file_name}-${index}`}
-                        className="truth-box"
-                        style={{
-                          left: `${box.x}%`,
-                          top: `${box.y}%`,
-                          width: `${box.width}%`,
-                          height: `${box.height}%`
-                        }}
-                      />
+                    <img src={`/fracture-samples/${img.file_name}`} alt={`${img.mura_region} X-ray`} />
+                    {revealed?.boxes.map((box, i) => (
+                      <span key={i} className="truth-box" style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.width}%`, height: `${box.height}%` }} />
                     ))}
                   </div>
-                  <strong>{item.fracture_type}</strong>
-                  <span>{item.mura_region} · {item.fracture_count} fracture(s)</span>
+                  {revealed ? (
+                    <>
+                      <strong>{revealed.fracture_type}</strong>
+                      <span>{revealed.mura_region} · {revealed.fracture_count} fracture(s)</span>
+                    </>
+                  ) : (
+                    <span className="hidden-label">{img.mura_region} · ground truth hidden</span>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
-          <textarea
-            className="report-box labels-box"
-            value={caseJson}
-            onChange={(event) => onCaseJson(event.target.value)}
-            placeholder={"Ground-truth JSON for the 10 images appears here. Edit fracture_type, fracture_count, and boxes before scoring.\nBox units are percentages: x, y, width, height."}
-          />
+              );
+            })}
+          </div>
+
+          <div className="fracture-actions">
+            <a className="secondary link-button" href="/fracture-samples/fracatlas-10-fracture-samples.zip" download>
+              <Download /> Download Images
+            </a>
+            <button className="secondary" onClick={downloadTemplate}>
+              <Download /> Download Template JSON
+            </button>
+          </div>
+
           <button className="accent" onClick={onRun} disabled={busy}>
-            {busy ? <Loader2 className="spin" /> : <Target />} Score Boxes & Fractures
+            {busy ? <Loader2 className="spin" /> : <Target />}
+            {busy ? "Scoring… ground truth hidden until complete" : "Compare Scores"}
           </button>
+
           <div className="notice compact-notice">
             <AlertTriangle size={20} />
-            <p>Research benchmarking only. MURA does not include fracture subtype boxes, so this JSON is your ground truth for the 10-image benchmark.</p>
+            <p>Ground-truth bounding boxes are hidden until you click Compare Scores. Images are from the FracAtlas dataset (CC BY 4.0).</p>
           </div>
         </div>
 
         <div className="panel fracture-guide">
-          <SectionTitle icon={<BarChart3 />} title="Scoring Design" caption="What was added for fracture localization scoring." />
+          <SectionTitle icon={<BarChart3 />} title="Scoring Design" caption="Weighted metrics for fracture localization benchmarking." />
           <div className="metric-list fracture-metric-list">
             <span><CheckCircle2 size={16} /> Localization mIoU, 45%</span>
             <span><CheckCircle2 size={16} /> Fracture type accuracy, 20%</span>
             <span><CheckCircle2 size={16} /> Fracture count accuracy, 15%</span>
             <span><CheckCircle2 size={16} /> Fracture detection accuracy, 15%</span>
             <span><CheckCircle2 size={16} /> Confidence alignment, 5%</span>
-            <span><CheckCircle2 size={16} /> Result and template download</span>
           </div>
           <div className="benchmark-notes">
-            <h3>Best setup</h3>
-            <p>Click Load Built-In Images to use 10 bundled FracAtlas X-rays with their existing fracture boxes. You can still edit the JSON or upload your own 10 images.</p>
-            <p>IoU is the main metric: every ground-truth box is compared with the best predicted box, then averaged as mIoU.</p>
-            <p>{result ? `${result.metrics.total} scored case(s) in the latest result.` : `${readyCount}/10 image(s) loaded.`}</p>
+            <h3>How it works</h3>
+            <p>Click <strong>Compare Scores</strong> — the AI model analyzes all 10 X-rays and predicts fracture locations. Results are scored against the hidden ground truth, which is then revealed.</p>
+            <p>Download the plain images and template JSON to run your own model offline, then compare results here.</p>
+            <p>{result ? `${result.metrics.total} scored case(s) in the latest result.` : "Ground truth revealed after scoring."}</p>
           </div>
         </div>
       </div>

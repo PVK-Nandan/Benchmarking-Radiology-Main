@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
+import { readFile } from "fs/promises";
+import path from "path";
 import { getCurrentUser } from "@/lib/auth";
 import { generateVisionText } from "@/lib/llm";
 import { saveAuditEvent } from "@/lib/storage";
+import { FRACTURE_GROUND_TRUTH } from "@/lib/fracture-ground-truth";
 import {
   calculateFractureMetrics,
-  findFractureCase,
   FractureBenchmarkCase,
   FracturePrediction,
   normalizeBoxes,
-  parseFractureCaseJson,
   scoreFractureCase
 } from "@/lib/fractureBenchmark";
 import { Provider } from "@/lib/types";
@@ -24,7 +25,7 @@ Image file: ${fileName}
 Return only a JSON object with this exact shape:
 {
   "file_name": "${fileName}",
-  "mura_region": "shoulder|humerus|elbow|forearm|wrist|hand|finger|unknown",
+  "mura_region": "shoulder|humerus|elbow|forearm|wrist|hand|finger|hip|leg|unknown",
   "predicted_fracture": "fracture|no fracture|unknown",
   "predicted_fracture_type": "short fracture type, e.g. distal radius, scaphoid, metacarpal, phalanx, radial head, olecranon, humeral shaft, clavicle, or unknown",
   "predicted_fracture_count": 0,
@@ -65,55 +66,37 @@ export async function POST(request: Request) {
     if (!actor) return NextResponse.json({ error: "Login required before running a benchmark." }, { status: 401 });
 
     const form = await request.formData();
-    const files = form.getAll("images").filter((item): item is File => item instanceof File);
-    if (files.length !== 10) {
-      return NextResponse.json({ error: "Upload exactly 10 X-ray images for this fracture benchmark." }, { status: 400 });
-    }
-
-    const metadataJson = form.get("caseJson")?.toString() || "";
-    if (!metadataJson.trim()) {
-      return NextResponse.json({ error: "Add ground-truth case JSON with fracture type, fracture count, and bounding boxes." }, { status: 400 });
-    }
-
-    const groundTruthCases = parseFractureCaseJson(metadataJson);
     const provider = (form.get("provider")?.toString() || process.env.DEFAULT_REPORT_PROVIDER || "openai") as Provider;
     const model = form.get("model")?.toString() || undefined;
     const apiKey = form.get("apiKey")?.toString() || undefined;
     const cases: FractureBenchmarkCase[] = [];
     const errors: string[] = [];
 
-    for (const image of files) {
-      if (image.type && !image.type.startsWith("image/")) {
-        errors.push(`${image.name}: skipped because it is not an image file.`);
-        continue;
-      }
-
-      const groundTruth = findFractureCase(image.name, groundTruthCases);
-      if (!groundTruth) {
-        errors.push(`${image.name}: no matching ground-truth JSON case.`);
-        continue;
-      }
-
+    for (const gt of FRACTURE_GROUND_TRUTH) {
       try {
-        const base64 = Buffer.from(await image.arrayBuffer()).toString("base64");
+        const imagePath = path.join(process.cwd(), "public", "fracture-samples", gt.file_name);
+        const buffer = await readFile(imagePath);
+        const base64 = buffer.toString("base64");
+
         const text = await generateVisionText({
           provider,
           model,
           apiKey,
           base64,
-          mimeType: image.type || "image/png",
-          prompt: promptForFracture(image.name),
+          mimeType: "image/jpeg",
+          prompt: promptForFracture(gt.file_name),
           temperature: 0
         });
-        const prediction = parsePrediction(text, image.name);
+
+        const prediction = parsePrediction(text, gt.file_name);
         cases.push({
-          file_name: image.name,
-          ground_truth: groundTruth,
+          file_name: gt.file_name,
+          ground_truth: gt,
           prediction,
-          scores: scoreFractureCase(groundTruth, prediction)
+          scores: scoreFractureCase(gt, prediction)
         });
       } catch (error: any) {
-        errors.push(`${image.name}: ${error.message || "prediction failed"}`);
+        errors.push(`${gt.file_name}: ${error.message || "prediction failed"}`);
       }
     }
 
@@ -122,28 +105,29 @@ export async function POST(request: Request) {
       summary: `Evaluated ${cases.length}/10 fracture localization case(s). Overall ${metrics.overall_score}%, mIoU ${metrics.localization_miou}%, type ${metrics.fracture_type_accuracy}%, count ${metrics.fracture_count_accuracy}%.`,
       metrics,
       cases,
+      groundTruth: FRACTURE_GROUND_TRUTH,
       scoring: [
         { metric: "Localization mIoU", weight: 45, description: "Compares each ground-truth fracture box with the best predicted box using intersection-over-union." },
         { metric: "Fracture type accuracy", weight: 20, description: "Checks whether the predicted fracture subtype matches the ground-truth subtype." },
-        { metric: "Fracture count accuracy", weight: 15, description: "Scores whether the predicted number of fractures matches the JSON fracture_count." },
+        { metric: "Fracture count accuracy", weight: 15, description: "Scores whether the predicted number of fractures matches the ground-truth fracture_count." },
         { metric: "Detection accuracy", weight: 15, description: "Checks fracture vs no-fracture detection for each case." },
         { metric: "Confidence alignment", weight: 5, description: "Rewards calibrated high confidence when a fracture is detected." }
       ],
       guidance: [
-        "The built-in sample uses FracAtlas images because FracAtlas includes fracture localization annotations.",
-        "MURA can still be used for uploaded X-rays, but MURA does not ship fracture bounding boxes; provide JSON boxes when using MURA images.",
-        "Keep box coordinates as percentages so the JSON remains portable across image sizes.",
-        "Review low-IoU cases visually before trusting the aggregate score."
+        "Ground-truth bounding boxes are from the FracAtlas dataset (CC BY 4.0) and were hidden until scoring.",
+        "Localization mIoU is the primary metric — each ground-truth box is matched to the best predicted box.",
+        "Keep box coordinates as percentages so results remain portable across image sizes.",
+        "Review low-IoU cases visually to understand where the model missed fracture regions."
       ],
       errors
     };
 
     await saveAuditEvent("fracture.localization_benchmark", actor, {
-      image_count: files.length,
       scored_cases: cases.length,
       overall_score: metrics.overall_score,
       localization_miou: metrics.localization_miou
     });
+
     return NextResponse.json(payload);
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Fracture benchmark failed." }, { status: 500 });

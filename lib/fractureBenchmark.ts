@@ -7,6 +7,7 @@ export type FractureBox = {
 
 export type FractureGroundTruthCase = {
   file_name: string;
+  image_url?: string;
   mura_region: string;
   fracture: string;
   fracture_type: string;
@@ -59,6 +60,7 @@ export type FractureBenchmarkResult = {
   summary: string;
   metrics: FractureBenchmarkMetrics;
   cases: FractureBenchmarkCase[];
+  groundTruth: FractureGroundTruthCase[];
   scoring: Array<{
     metric: string;
     weight: number;
