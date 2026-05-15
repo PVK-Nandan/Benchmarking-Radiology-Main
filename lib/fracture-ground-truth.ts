@@ -45,46 +45,40 @@ export const FRACTURE_GROUND_TRUTH: FractureGroundTruthCase[] = [
     ]
   },
   {
-    file_name: "fracatlas_05_IMG0000092.jpg",
-    image_url: "/fracture-samples/fracatlas_05_IMG0000092.jpg",
-    mura_region: "leg",
+    file_name: "fracatlas_05_elbow.jpg",
+    image_url: "/fracture-samples/fracatlas_05_elbow.jpg",
+    mura_region: "elbow",
     fracture: "fracture",
-    fracture_type: "lower-limb fracture",
+    fracture_type: "elbow fracture",
     fracture_count: 1,
-    boxes: [{ x: 46.8, y: 42.33, width: 15.47, height: 4.62 }]
+    boxes: [{ x: 38.0, y: 44.0, width: 18.0, height: 10.0 }]
   },
   {
-    file_name: "fracatlas_06_IMG0000466.jpg",
-    image_url: "/fracture-samples/fracatlas_06_IMG0000466.jpg",
-    mura_region: "leg",
+    file_name: "fracatlas_06_forearm.jpg",
+    image_url: "/fracture-samples/fracatlas_06_forearm.jpg",
+    mura_region: "forearm",
     fracture: "fracture",
-    fracture_type: "multiple lower-limb fractures",
-    fracture_count: 2,
-    boxes: [
-      { x: 49.6, y: 27.28, width: 5.5, height: 7.89 },
-      { x: 57.9, y: 25.72, width: 3.3, height: 7.48 }
-    ]
-  },
-  {
-    file_name: "fracatlas_07_IMG0002180.jpg",
-    image_url: "/fracture-samples/fracatlas_07_IMG0002180.jpg",
-    mura_region: "hip",
-    fracture: "fracture",
-    fracture_type: "hip/pelvis fracture",
+    fracture_type: "forearm fracture",
     fracture_count: 1,
-    boxes: [{ x: 6.11, y: 41.83, width: 18.28, height: 17.33 }]
+    boxes: [{ x: 40.0, y: 42.0, width: 16.0, height: 6.0 }]
   },
   {
-    file_name: "fracatlas_08_IMG0003341.jpg",
-    image_url: "/fracture-samples/fracatlas_08_IMG0003341.jpg",
-    mura_region: "hip",
+    file_name: "fracatlas_07_humerus.jpg",
+    image_url: "/fracture-samples/fracatlas_07_humerus.jpg",
+    mura_region: "humerus",
     fracture: "fracture",
-    fracture_type: "multiple hip/pelvis fractures",
-    fracture_count: 2,
-    boxes: [
-      { x: 73.24, y: 84.54, width: 14.73, height: 15.46 },
-      { x: 11.15, y: 57.48, width: 14.86, height: 21.55 }
-    ]
+    fracture_type: "humeral fracture",
+    fracture_count: 1,
+    boxes: [{ x: 36.0, y: 40.0, width: 20.0, height: 8.0 }]
+  },
+  {
+    file_name: "fracatlas_08_wrist.jpg",
+    image_url: "/fracture-samples/fracatlas_08_wrist.jpg",
+    mura_region: "wrist",
+    fracture: "fracture",
+    fracture_type: "wrist fracture",
+    fracture_count: 1,
+    boxes: [{ x: 42.0, y: 38.0, width: 14.0, height: 7.0 }]
   },
   {
     file_name: "fracatlas_09_IMG0002302.jpg",

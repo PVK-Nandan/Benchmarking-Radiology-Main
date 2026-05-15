@@ -684,10 +684,10 @@ const BUILT_IN_IMAGES = [
   { file_name: "fracatlas_02_IMG0000025.jpg", mura_region: "hand" },
   { file_name: "fracatlas_03_IMG0000261.jpg", mura_region: "hand" },
   { file_name: "fracatlas_04_IMG0000307.jpg", mura_region: "hand" },
-  { file_name: "fracatlas_05_IMG0000092.jpg", mura_region: "leg" },
-  { file_name: "fracatlas_06_IMG0000466.jpg", mura_region: "leg" },
-  { file_name: "fracatlas_07_IMG0002180.jpg", mura_region: "hip" },
-  { file_name: "fracatlas_08_IMG0003341.jpg", mura_region: "hip" },
+  { file_name: "fracatlas_05_elbow.jpg",      mura_region: "elbow" },
+  { file_name: "fracatlas_06_forearm.jpg",    mura_region: "forearm" },
+  { file_name: "fracatlas_07_humerus.jpg",    mura_region: "humerus" },
+  { file_name: "fracatlas_08_wrist.jpg",      mura_region: "wrist" },
   { file_name: "fracatlas_09_IMG0002302.jpg", mura_region: "shoulder" },
   { file_name: "fracatlas_10_IMG0002620.jpg", mura_region: "shoulder" }
 ];
