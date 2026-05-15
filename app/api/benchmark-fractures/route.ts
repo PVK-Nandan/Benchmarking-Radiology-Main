@@ -60,16 +60,41 @@ function parsePrediction(text: string, fileName: string): FracturePrediction {
   };
 }
 
+function normalizeUserBox(box: any): { x: number; y: number; width: number; height: number } | null {
+  if (Array.isArray(box) && box.length === 4) {
+    // [x_min, y_min, x_max, y_max] format
+    const [x1, y1, x2, y2] = box.map(Number);
+    const w = x2 - x1, h = y2 - y1;
+    if (w > 0 && h > 0) return { x: x1, y: y1, width: w, height: h };
+  } else if (box && typeof box === "object" && "width" in box && "height" in box) {
+    // {x, y, width, height} format
+    const b = { x: Number(box.x), y: Number(box.y), width: Number(box.width), height: Number(box.height) };
+    if (b.width > 0 && b.height > 0) return b;
+  }
+  return null;
+}
+
+function normalizeUserBoxes(value: any) {
+  if (!Array.isArray(value)) return [];
+  return value.map(normalizeUserBox).filter(Boolean) as { x: number; y: number; width: number; height: number }[];
+}
+
+function normalizeFractureLabel(value: any): string {
+  if (value === 1 || value === true || value === "1") return "fracture";
+  if (value === 0 || value === false || value === "0") return "no fracture";
+  return String(value || "unknown");
+}
+
 function parseUserPredictions(json: string): FracturePrediction[] {
   const parsed = JSON.parse(json);
   const rows = Array.isArray(parsed) ? parsed : Array.isArray(parsed.cases) ? parsed.cases : [];
   return rows.map((row: any) => ({
     file_name: String(row.file_name || ""),
     mura_region: String(row.mura_region || "unknown"),
-    predicted_fracture: String(row.predicted_fracture || "unknown"),
+    predicted_fracture: normalizeFractureLabel(row.predicted_fracture),
     predicted_fracture_type: String(row.predicted_fracture_type || "unknown"),
     predicted_fracture_count: Math.max(0, Math.round(Number(row.predicted_fracture_count) || 0)),
-    boxes: normalizeBoxes(row.boxes || []),
+    boxes: normalizeUserBoxes(row.boxes || []),
     confidence: Math.max(0, Math.min(100, Math.round(Number(row.confidence) || 80))),
     visible_findings: Array.isArray(row.visible_findings) ? row.visible_findings.map(String) : [],
     rationale: String(row.rationale || "User-provided prediction"),

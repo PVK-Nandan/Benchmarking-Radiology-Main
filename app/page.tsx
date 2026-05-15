@@ -799,25 +799,19 @@ function FractureBenchmark({
 
           <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "1rem" }}>
             <p style={{ fontSize: "0.85rem", color: "var(--muted)", margin: 0 }}>
-              Step 1 — Download the 10 images above and run your model on them.<br />
-              Step 2 — Upload your images below so they appear in the grid.<br />
-              Step 3 — Download the template JSON, fill in your predictions, and upload it.<br />
-              Step 4 — Click Compare Scores.
+              <strong>Step 1</strong> — Download the 10 benchmark images, run your model, fill in the template JSON.<br />
+              <strong>Step 2</strong> — Upload your predictions JSON below. Images are optional — scoring runs on JSON alone.<br />
+              <strong>Step 3</strong> — Optionally upload your images to show them in the grid above.<br />
+              <strong>Step 4</strong> — Click Compare Scores.
             </p>
 
-            <label className="upload-box" style={{ minHeight: "64px" }}>
-              <Upload size={20} />
-              <span>
-                {userImages.length > 0
-                  ? `${userImages.length} image(s) uploaded — showing in grid above`
-                  : "Step 2 — Upload your 10 X-ray images"}
-              </span>
-              <input type="file" multiple accept="image/*,.png,.jpg,.jpeg,.webp" onChange={handleUserImages} />
-            </label>
-
-            <label className="upload-box" style={{ minHeight: "64px" }}>
+            <label className="upload-box" style={{ minHeight: "64px", borderStyle: predictionJson ? "solid" : "dashed", borderColor: predictionJson ? "var(--green)" : undefined }}>
               <FileText size={20} />
-              <span>{predictionFileName ? `${predictionFileName} loaded` : "Step 3 — Upload your predictions JSON"}</span>
+              <span style={{ color: predictionJson ? "var(--green)" : undefined }}>
+                {predictionFileName
+                  ? `✓ ${predictionFileName} loaded — ready to score`
+                  : "Step 2 — Upload your predictions JSON (required)"}
+              </span>
               <input type="file" accept=".json,application/json" onChange={handlePredictionFile} />
             </label>
 
@@ -827,9 +821,19 @@ function FractureBenchmark({
                 style={{ minHeight: "100px", fontSize: "0.78rem" }}
                 value={predictionJson}
                 onChange={(e) => setPredictionJson(e.target.value)}
-                placeholder="Your predictions JSON appears here. You can also paste it directly."
+                placeholder="Paste or edit your predictions JSON here"
               />
             )}
+
+            <label className="upload-box" style={{ minHeight: "56px", opacity: 0.7 }}>
+              <Upload size={18} />
+              <span>
+                {userImages.length > 0
+                  ? `${userImages.length} image(s) uploaded — showing in grid above`
+                  : "Step 3 — Upload your images (optional, for display only)"}
+              </span>
+              <input type="file" multiple accept="image/*,.png,.jpg,.jpeg,.webp" onChange={handleUserImages} />
+            </label>
           </div>
 
           <button
@@ -838,12 +842,12 @@ function FractureBenchmark({
             disabled={busy || !predictionJson.trim()}
           >
             {busy ? <Loader2 className="spin" /> : <Target />}
-            {busy ? "Scoring… ground truth hidden until complete" : "Compare Scores"}
+            {busy ? "Comparing predictions vs ground truth…" : "Compare Scores"}
           </button>
 
           <div className="notice compact-notice">
             <AlertTriangle size={20} />
-            <p>Ground-truth bounding boxes are hidden until you click Compare Scores. Images are from the FracAtlas dataset (CC BY 4.0).</p>
+            <p>Scoring compares your JSON predictions directly against the hidden ground truth. Images are not required for scoring.</p>
           </div>
         </div>
 
