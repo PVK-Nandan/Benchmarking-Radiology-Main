@@ -701,7 +701,6 @@ function FractureBenchmark({
   busy: boolean;
   onRun: (userPredictions?: string) => void;
 }) {
-  const [mode, setMode] = useState<"ai" | "manual">("ai");
   const [predictionJson, setPredictionJson] = useState("");
   const [predictionFileName, setPredictionFileName] = useState("");
   const [userImages, setUserImages] = useState<{ fileName: string; url: string }[]>([]);
@@ -758,7 +757,20 @@ function FractureBenchmark({
               return (
                 <div className="fracture-sample-card" key={img.file_name}>
                   <div className="fracture-image-wrap">
-                    <img src={imgSrc} alt={`${img.mura_region} X-ray`} />
+                    <img
+                      src={imgSrc}
+                      alt={`${img.mura_region} X-ray`}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                        const parent = (e.target as HTMLImageElement).parentElement;
+                        if (parent && !parent.querySelector(".missing-img")) {
+                          const placeholder = document.createElement("div");
+                          placeholder.className = "missing-img";
+                          placeholder.textContent = `${img.mura_region} image not yet added`;
+                          parent.appendChild(placeholder);
+                        }
+                      }}
+                    />
                     {revealed?.boxes.map((box, i) => (
                       <span key={i} className="truth-box" style={{ left: `${box.x}%`, top: `${box.y}%`, width: `${box.width}%`, height: `${box.height}%` }} />
                     ))}
@@ -777,7 +789,7 @@ function FractureBenchmark({
           </div>
 
           <div className="fracture-actions">
-            <a className="secondary link-button" href="/fracture-samples/fracatlas-10-fracture-samples.zip" download>
+            <a className="secondary link-button" href="/api/fracture-download" download="fracture-benchmark-images.zip">
               <Download /> Download Images
             </a>
             <button className="secondary" onClick={downloadTemplate}>
@@ -785,52 +797,45 @@ function FractureBenchmark({
             </button>
           </div>
 
-          <div className="login-tabs" style={{ marginTop: "1rem" }}>
-            <button className={mode === "ai" ? "active" : ""} onClick={() => setMode("ai")}>Built-in AI</button>
-            <button className={mode === "manual" ? "active" : ""} onClick={() => setMode("manual")}>Upload My Model&apos;s Predictions</button>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "1rem" }}>
+            <p style={{ fontSize: "0.85rem", color: "var(--muted)", margin: 0 }}>
+              Step 1 — Download the 10 images above and run your model on them.<br />
+              Step 2 — Upload your images below so they appear in the grid.<br />
+              Step 3 — Download the template JSON, fill in your predictions, and upload it.<br />
+              Step 4 — Click Compare Scores.
+            </p>
+
+            <label className="upload-box" style={{ minHeight: "64px" }}>
+              <Upload size={20} />
+              <span>
+                {userImages.length > 0
+                  ? `${userImages.length} image(s) uploaded — showing in grid above`
+                  : "Step 2 — Upload your 10 X-ray images"}
+              </span>
+              <input type="file" multiple accept="image/*,.png,.jpg,.jpeg,.webp" onChange={handleUserImages} />
+            </label>
+
+            <label className="upload-box" style={{ minHeight: "64px" }}>
+              <FileText size={20} />
+              <span>{predictionFileName ? `${predictionFileName} loaded` : "Step 3 — Upload your predictions JSON"}</span>
+              <input type="file" accept=".json,application/json" onChange={handlePredictionFile} />
+            </label>
+
+            {predictionJson && (
+              <textarea
+                className="report-box labels-box"
+                style={{ minHeight: "100px", fontSize: "0.78rem" }}
+                value={predictionJson}
+                onChange={(e) => setPredictionJson(e.target.value)}
+                placeholder="Your predictions JSON appears here. You can also paste it directly."
+              />
+            )}
           </div>
-
-          {mode === "manual" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "0.5rem" }}>
-              <p style={{ fontSize: "0.85rem", color: "var(--muted)", margin: 0 }}>
-                Step 1 — Download the 10 images above and run your model on them.<br />
-                Step 2 — Upload your images below so they appear in the grid.<br />
-                Step 3 — Download the template JSON, fill in your predictions, and upload it.<br />
-                Step 4 — Click Compare Scores.
-              </p>
-
-              <label className="upload-box" style={{ minHeight: "64px" }}>
-                <Upload size={20} />
-                <span>
-                  {userImages.length > 0
-                    ? `${userImages.length} image(s) uploaded — showing in grid above`
-                    : "Step 2 — Upload your 10 X-ray images"}
-                </span>
-                <input type="file" multiple accept="image/*,.png,.jpg,.jpeg,.webp" onChange={handleUserImages} />
-              </label>
-
-              <label className="upload-box" style={{ minHeight: "64px" }}>
-                <FileText size={20} />
-                <span>{predictionFileName ? `${predictionFileName} loaded` : "Step 3 — Upload your predictions JSON"}</span>
-                <input type="file" accept=".json,application/json" onChange={handlePredictionFile} />
-              </label>
-
-              {predictionJson && (
-                <textarea
-                  className="report-box labels-box"
-                  style={{ minHeight: "100px", fontSize: "0.78rem" }}
-                  value={predictionJson}
-                  onChange={(e) => setPredictionJson(e.target.value)}
-                  placeholder="Your predictions JSON appears here. You can also paste it directly."
-                />
-              )}
-            </div>
-          )}
 
           <button
             className="accent"
-            onClick={() => onRun(mode === "manual" ? predictionJson : undefined)}
-            disabled={busy || (mode === "manual" && !predictionJson.trim())}
+            onClick={() => onRun(predictionJson)}
+            disabled={busy || !predictionJson.trim()}
           >
             {busy ? <Loader2 className="spin" /> : <Target />}
             {busy ? "Scoring… ground truth hidden until complete" : "Compare Scores"}
