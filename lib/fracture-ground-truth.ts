@@ -45,40 +45,40 @@ export const FRACTURE_GROUND_TRUTH: FractureGroundTruthCase[] = [
     ]
   },
   {
-    file_name: "fracatlas_05_elbow.jpg",
-    image_url: "/fracture-samples/fracatlas_05_elbow.jpg",
-    mura_region: "elbow",
+    file_name: "fracatlas_05_finger.jpg",
+    image_url: "/fracture-samples/fracatlas_05_finger.jpg",
+    mura_region: "finger",
     fracture: "fracture",
-    fracture_type: "elbow fracture",
+    fracture_type: "finger avulsion fracture",
     fracture_count: 1,
-    boxes: [{ x: 38.0, y: 44.0, width: 18.0, height: 10.0 }]
+    boxes: [{ x: 28.0, y: 50.0, width: 42.0, height: 10.0 }]
   },
   {
     file_name: "fracatlas_06_forearm.jpg",
     image_url: "/fracture-samples/fracatlas_06_forearm.jpg",
     mura_region: "forearm",
     fracture: "fracture",
-    fracture_type: "forearm fracture",
+    fracture_type: "distal forearm buckle fracture",
     fracture_count: 1,
-    boxes: [{ x: 40.0, y: 42.0, width: 16.0, height: 6.0 }]
+    boxes: [{ x: 30.0, y: 62.0, width: 38.0, height: 8.0 }]
   },
   {
-    file_name: "fracatlas_07_humerus.jpg",
-    image_url: "/fracture-samples/fracatlas_07_humerus.jpg",
-    mura_region: "humerus",
+    file_name: "fracatlas_07_shoulder.jpg",
+    image_url: "/fracture-samples/fracatlas_07_shoulder.jpg",
+    mura_region: "shoulder",
     fracture: "fracture",
-    fracture_type: "humeral fracture",
+    fracture_type: "proximal humerus fracture",
     fracture_count: 1,
-    boxes: [{ x: 36.0, y: 40.0, width: 20.0, height: 8.0 }]
+    boxes: [{ x: 28.0, y: 22.0, width: 38.0, height: 32.0 }]
   },
   {
     file_name: "fracatlas_08_wrist.jpg",
     image_url: "/fracture-samples/fracatlas_08_wrist.jpg",
     mura_region: "wrist",
     fracture: "fracture",
-    fracture_type: "wrist fracture",
+    fracture_type: "wrist greenstick fracture",
     fracture_count: 1,
-    boxes: [{ x: 42.0, y: 38.0, width: 14.0, height: 7.0 }]
+    boxes: [{ x: 25.0, y: 28.0, width: 48.0, height: 14.0 }]
   },
   {
     file_name: "fracatlas_09_IMG0002302.jpg",

@@ -11,9 +11,9 @@ const IMAGES = [
   "fracatlas_02_IMG0000025.jpg",
   "fracatlas_03_IMG0000261.jpg",
   "fracatlas_04_IMG0000307.jpg",
-  "fracatlas_05_elbow.jpg",
+  "fracatlas_05_finger.jpg",
   "fracatlas_06_forearm.jpg",
-  "fracatlas_07_humerus.jpg",
+  "fracatlas_07_shoulder.jpg",
   "fracatlas_08_wrist.jpg",
   "fracatlas_09_IMG0002302.jpg",
   "fracatlas_10_IMG0002620.jpg"
