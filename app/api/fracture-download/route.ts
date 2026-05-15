@@ -40,13 +40,13 @@ export async function GET() {
     return NextResponse.json({ error: "No image files found." }, { status: 404 });
   }
 
-  const zipBuffer = await zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE" });
+  const zipBuffer = await zip.generateAsync({ type: "arraybuffer", compression: "DEFLATE" });
 
-  return new Response(zipBuffer, {
+  return new Response(zipBuffer as ArrayBuffer, {
     headers: {
       "Content-Type": "application/zip",
       "Content-Disposition": `attachment; filename="fracture-benchmark-images.zip"`,
-      "Content-Length": String(zipBuffer.length)
+      "Content-Length": String((zipBuffer as ArrayBuffer).byteLength)
     }
   });
 }
